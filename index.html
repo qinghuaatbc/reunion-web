@@ -19,7 +19,7 @@
 </head>
 <body>
   <canvas id="bevy" tabindex="0"></canvas>
-  <div id="loading">同学会<br>正在载入（第一次约 40 MB）……</div>
+  <div id="loading">同学会<br>正在载入（第一次约 70 MB）……</div>
   <script type="module">
     import init from "./reunion.js";
     const canvas = document.getElementById("bevy");
@@ -49,10 +49,43 @@
       if (!named) u.pitch = 0.85 + (h % 5) * 0.1;
       synth.speak(u);
     };
-    // iOS only lets a page speak after speaking once inside a tap.
+    // Multiplayer: the game's connection to the server (see src/net.rs).
+    // The page's address picks the room (?room=...) and, for testing,
+    // another server (?server=ws://localhost:8190).
+    let socket = null, inbox = [];
+    const params = new URLSearchParams(location.search);
+    window.reunionNetOpen = (url) => {
+      const room = params.get("room") || "main";
+      try {
+        socket = new WebSocket((params.get("server") || url) + "?room=" + encodeURIComponent(room));
+      } catch (e) {
+        inbox.push("#closed");
+        return;
+      }
+      socket.onopen = () => inbox.push("#open");
+      socket.onmessage = (e) => inbox.push(e.data);
+      socket.onclose = () => inbox.push("#closed");
+    };
+    window.reunionNetSend = (text) => { if (socket && socket.readyState === 1) socket.send(text); };
+    window.reunionNetPoll = () => { const all = inbox.join("\x1e"); inbox = []; return all; };
+
+    // Writing on the blackboard.
+    window.reunionPrompt = (question) => window.prompt(question) || "";
+
+    // Browsers keep sound off until the page is tapped: the game's audio
+    // contexts are noted as they are made and woken on each tap, and iOS
+    // only lets a page speak after speaking once inside a tap.
+    const contexts = [];
+    const Base = window.AudioContext || window.webkitAudioContext;
+    if (Base) {
+      window.AudioContext = class extends Base {
+        constructor(...args) { super(...args); contexts.push(this); }
+      };
+    }
+    let spoke = false;
     const unlock = () => {
-      if (synth) synth.speak(new SpeechSynthesisUtterance(""));
-      for (const ev of ["touchend", "click", "keydown"]) document.removeEventListener(ev, unlock);
+      for (const c of contexts) if (c.state !== "running") c.resume();
+      if (!spoke && synth) { synth.speak(new SpeechSynthesisUtterance("")); spoke = true; }
     };
     for (const ev of ["touchend", "click", "keydown"]) document.addEventListener(ev, unlock);
 
