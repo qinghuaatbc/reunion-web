@@ -21,7 +21,7 @@
   <canvas id="bevy" tabindex="0"></canvas>
   <div id="loading">同学会<br>正在载入（第一次约 70 MB）……</div>
   <script type="module">
-    import init from "./reunion.js";
+    import init from "./reunion.js?v=1793395993";
     const canvas = document.getElementById("bevy");
     canvas.addEventListener("pointerdown", () => canvas.focus());
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
@@ -89,7 +89,8 @@
     };
     for (const ev of ["touchend", "click", "keydown"]) document.addEventListener(ev, unlock);
 
-    init().catch((e) => {
+    // The build's stamp on both files: a browser never mixes an old one in.
+    init({ module_or_path: "./reunion_bg.wasm?v=1793395993" }).catch((e) => {
       // Bevy ends its event loop by throwing; anything else is a real error.
       if (!String(e).includes("Using exceptions for control flow")) {
         document.getElementById("loading").textContent = "启动失败：" + e;
