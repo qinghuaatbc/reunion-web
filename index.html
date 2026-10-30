@@ -21,9 +21,19 @@
   <canvas id="bevy" tabindex="0"></canvas>
   <div id="loading">同学会<br>正在载入（第一次约 70 MB）……</div>
   <script type="module">
-    import init from "./reunion.js?v=1793395993";
+    import init from "./reunion.js?v=1793397141";
     const canvas = document.getElementById("bevy");
-    canvas.addEventListener("pointerdown", () => canvas.focus());
+    // Where each click or tap lands on the canvas, in the canvas's own
+    // pixels (its CSS size times its resolution): the menu reads these,
+    // whatever the browser and its screen scale make of pointer positions.
+    const presses = [];
+    canvas.addEventListener("pointerdown", (e) => {
+      canvas.focus();
+      const r = canvas.getBoundingClientRect();
+      const k = canvas.width / Math.max(r.width, 1);
+      presses.push((e.clientX - r.left) * k, (e.clientY - r.top) * k);
+    });
+    window.reunionPresses = () => { const all = presses.join(","); presses.length = 0; return all; };
     canvas.addEventListener("contextmenu", (e) => e.preventDefault());
     // iOS Safari still pinch-zooms the page on its own "gesture" events.
     for (const ev of ["gesturestart", "gesturechange", "gestureend"]) {
@@ -90,7 +100,7 @@
     for (const ev of ["touchend", "click", "keydown"]) document.addEventListener(ev, unlock);
 
     // The build's stamp on both files: a browser never mixes an old one in.
-    init({ module_or_path: "./reunion_bg.wasm?v=1793395993" }).catch((e) => {
+    init({ module_or_path: "./reunion_bg.wasm?v=1793397141" }).catch((e) => {
       // Bevy ends its event loop by throwing; anything else is a real error.
       if (!String(e).includes("Using exceptions for control flow")) {
         document.getElementById("loading").textContent = "启动失败：" + e;
